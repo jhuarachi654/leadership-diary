@@ -1,0 +1,8 @@
+name = "leadership-diary"
+pages_build_output_dir = "dist"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[[r2_buckets]]
+binding = "PHOTOS"
+bucket_name = "leadership-diary-photos"
