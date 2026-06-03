@@ -642,14 +642,24 @@ function App() {
                 style={{
                   width: '100%',
                   padding: '12px',
-                  border: '1px solid #e5e7eb',
-                  background: 'white',
-                  color: '#000',
+                  border: '1px solid #d1d5db',
+                  background: '#ffffff',
+                  color: '#000000',
                   fontFamily: 'Space Grotesk, sans-serif',
                   fontSize: '13px',
+                  fontWeight: '400',
                   borderRadius: '0px',
                   boxSizing: 'border-box',
-                  marginBottom: '16px'
+                  marginBottom: '16px',
+                  transition: 'border-color 0.2s ease'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#2563eb'
+                  e.target.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.1)'
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#d1d5db'
+                  e.target.style.boxShadow = 'none'
                 }}
               />
               <div className="modal-actions">
