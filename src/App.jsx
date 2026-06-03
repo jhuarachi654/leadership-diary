@@ -639,6 +639,18 @@ function App() {
                 value={photoCaption}
                 onChange={(e) => setPhotoCaption(e.target.value)}
                 onKeyPress={(e) => { if (e.key === 'Enter') savePendingPhoto() }}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #e5e7eb',
+                  background: 'white',
+                  color: '#000',
+                  fontFamily: 'Space Grotesk, sans-serif',
+                  fontSize: '13px',
+                  borderRadius: '0px',
+                  boxSizing: 'border-box',
+                  marginBottom: '16px'
+                }}
               />
               <div className="modal-actions">
                 <button className="btn-primary" onClick={savePendingPhoto}>Save Photo</button>
