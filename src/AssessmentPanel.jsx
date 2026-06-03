@@ -60,13 +60,6 @@ const AssessmentPanel = () => {
       {/* Full-screen Assessment Modal */}
       {isOpen && (
         <div className={`assessment-overlay ${isClosing ? 'closing' : 'assessment-open'}`}>
-          {/* Washi Tape Inside Overlay - Pulls Up with Content */}
-          <div className="overlay-washi-tape">
-            <div className="washi-tape">
-              <div className="washi-pattern"></div>
-            </div>
-          </div>
-
           <button className="assessment-close" onClick={handleClose}>×</button>
 
           <div className="assessment-content">
