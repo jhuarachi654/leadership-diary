@@ -7,48 +7,54 @@ const StarInsight = () => <span className="star-emoji">✨</span>
 const StarGoal = () => <span className="star-emoji">⭐</span>
 const StarAction = () => <span className="star-emoji">💫</span>
 
-// Fixed 6-week timeline: Jun 1 (Module 2) → Jul 11 (Module 6)
+// Fixed 6-module timeline from Leadership by Design course
 const FIXED_WEEKS = [
   { 
     index: 0,
     start: new Date(2026, 5, 1), 
     end: new Date(2026, 5, 7),
-    label: 'Week 1',
+    label: 'Module 1',
+    title: 'Introduction',
     unlockDate: 'Jun 1, 2026'
   },
   { 
     index: 1,
     start: new Date(2026, 5, 8), 
     end: new Date(2026, 5, 14),
-    label: 'Week 2',
+    label: 'Module 2',
+    title: 'Self Leadership',
     unlockDate: 'Jun 8, 2026'
   },
   { 
     index: 2,
     start: new Date(2026, 5, 15), 
     end: new Date(2026, 5, 21),
-    label: 'Week 3',
+    label: 'Module 3',
+    title: 'Leading from the Whole',
     unlockDate: 'Jun 15, 2026'
   },
   { 
     index: 3,
     start: new Date(2026, 5, 22), 
     end: new Date(2026, 5, 28),
-    label: 'Week 4',
+    label: 'Module 4',
+    title: 'Leading from the Side',
     unlockDate: 'Jun 22, 2026'
   },
   { 
     index: 4,
     start: new Date(2026, 5, 29), 
     end: new Date(2026, 6, 5),
-    label: 'Week 5',
+    label: 'Module 5',
+    title: 'Leading from the Front',
     unlockDate: 'Jun 29, 2026'
   },
   { 
     index: 5,
     start: new Date(2026, 6, 6), 
     end: new Date(2026, 6, 11),
-    label: 'Week 6',
+    label: 'Module 6',
+    title: 'Wrapping Up',
     unlockDate: 'Jul 6, 2026'
   },
 ]
@@ -63,12 +69,51 @@ const getWeekIndexForDate = (timestamp) => {
   return FIXED_WEEKS.length - 1
 }
 
+const ENTRY_TYPES = {
+  insight: { label: 'Insight', color: '#3b82f6' },
+  learning: { label: 'Learning', color: '#14b8a6' },
+  growth: { label: 'Growth', color: '#10b981' },
+  'speaker-notes': { label: 'Speaker Notes', color: '#f59e0b' },
+  events: { label: 'Events', color: '#a855f7' },
+  thought: { label: 'Thought', color: '#ec4899' }
+}
+
+const getContentPlaceholder = (type) => {
+  const placeholders = {
+    insight: 'What realization or insight did you have?',
+    learning: 'What surprised you? What\'s one key takeaway?',
+    growth: 'Where are you stretching? What\'s challenging you?',
+    'speaker-notes': 'Key quotes or ideas from the speaker...',
+    events: 'What happened? What was significant about this?',
+    thought: 'What\'s on your mind?'
+  }
+  return placeholders[type] || 'Write your reflection...'
+}
+
+// Auth credentials
+const CREDENTIALS = {
+  email: 'jhuarachi654@gmail.com',
+  password: 'Brocky123!'
+}
+
 function App() {
   const [entries, setEntries] = useState([])
   const [showNewEntry, setShowNewEntry] = useState(false)
   const [selectedEntry, setSelectedEntry] = useState(null)
-  const [formData, setFormData] = useState({ insight: '', goal: '', action: '' })
+  const [editingEntry, setEditingEntry] = useState(null)
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null)
+  const [formData, setFormData] = useState({ type: 'insight', title: '', content: '' })
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [isSignedIn, setIsSignedIn] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('diarySignedIn') === 'true'
+    }
+    return false
+  })
+  const [showSignIn, setShowSignIn] = useState(false)
+  const [signInEmail, setSignInEmail] = useState('')
+  const [signInPassword, setSignInPassword] = useState('')
+  const [signInError, setSignInError] = useState('')
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true')
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [pendingPhoto, setPendingPhoto] = useState(null)
@@ -107,6 +152,32 @@ function App() {
   useEffect(() => {
     localStorage.setItem('darkMode', darkMode)
   }, [darkMode])
+
+  // Handle sign-in
+  const handleSignIn = () => {
+    setSignInError('')
+    const email = signInEmail.trim()
+    const password = signInPassword.trim()
+    
+    if (email === CREDENTIALS.email && password === CREDENTIALS.password) {
+      localStorage.setItem('diarySignedIn', 'true')
+      setIsSignedIn(true)
+      setSignInEmail('')
+      setSignInPassword('')
+      setShowSignIn(false)
+    } else {
+      setSignInError('Invalid email or password')
+    }
+  }
+
+  // Handle sign-out
+  const handleSignOut = () => {
+    localStorage.removeItem('diarySignedIn')
+    setIsSignedIn(false)
+    setSelectedEntry(null)
+    setShowNewEntry(false)
+    setEditingEntry(null)
+  }
 
   // Mouse drag handlers
   const handleMouseDown = (e, entryId) => {
@@ -193,26 +264,31 @@ function App() {
 
   // Add text entry
   const handleAddEntry = () => {
-    if (!formData.insight.trim() && !formData.goal.trim() && !formData.action.trim()) {
-      alert('Please add at least one field')
+    if (!formData.title.trim() || !formData.content.trim()) {
+      alert('Please add a title and content')
       return
     }
 
     const newEntry = {
       id: Date.now(),
-      type: 'text',
+      entryType: formData.type,
       weekIndex: getWeekIndexForDate(Date.now()),
-      insight: formData.insight,
-      goal: formData.goal,
-      action: formData.action,
+      title: formData.title,
+      content: formData.content,
       date: new Date().toLocaleDateString('en-US', {
         weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit',
       }),
       timestamp: Date.now(),
     }
 
-    setEntries([newEntry, ...entries])
-    setFormData({ insight: '', goal: '', action: '' })
+    if (editingEntry) {
+      setEntries(entries.map(e => e.id === editingEntry.id ? newEntry : e))
+      setEditingEntry(null)
+    } else {
+      setEntries([newEntry, ...entries])
+    }
+    
+    setFormData({ type: 'insight', title: '', content: '' })
     setShowNewEntry(false)
   }
 
@@ -249,7 +325,52 @@ function App() {
           <p className="tagline">{entries.length} entries</p>
         </div>
         <div className="header-timestamp">{currentTime_display}</div>
-        <button className="dark-toggle" onClick={() => setDarkMode(d => !d)} aria-label="Toggle dark mode">
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          {!isSignedIn ? (
+            <button 
+              onClick={() => setShowSignIn(true)}
+              style={{
+                padding: '8px 16px',
+                fontSize: '13px',
+                background: '#2563eb',
+                color: 'white',
+                border: 'none',
+                borderRadius: '0px',
+                cursor: 'pointer',
+                fontFamily: 'Space Grotesk, sans-serif',
+                fontWeight: '700'
+              }}
+            >
+              Sign In
+            </button>
+          ) : (
+            <button 
+              onClick={handleSignOut}
+              style={{
+                padding: '6px 12px',
+                fontSize: '12px',
+                background: 'transparent',
+                color: '#6b7280',
+                border: '1px solid #d1d5db',
+                borderRadius: '0px',
+                cursor: 'pointer',
+                fontFamily: 'Space Grotesk, sans-serif',
+                fontWeight: '500',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.borderColor = '#9ca3af'
+                e.target.style.color = '#374151'
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.borderColor = '#d1d5db'
+                e.target.style.color = '#6b7280'
+              }}
+            >
+              Sign Out
+            </button>
+          )}
+          <button className="dark-toggle" onClick={() => setDarkMode(d => !d)} aria-label="Toggle dark mode">
           {darkMode ? (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="12" cy="12" r="5"/>
@@ -268,6 +389,7 @@ function App() {
             </svg>
           )}
         </button>
+        </div>
       </header>
 
       {/* Main Canvas - Horizontal Scrolling Weeks */}
@@ -285,16 +407,16 @@ function App() {
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
               >
-                {/* Week Label - Top Left */}
+                {/* Module Label - Top Left */}
                 <div className="week-label">
-                  <h2>{week.label}</h2>
+                  <h2>{week.label}: {week.title}</h2>
                 </div>
 
-                {/* Unlock Notice - Future Weeks */}
+                {/* Unlock Notice - Future Modules */}
                 {isLocked && (
                   <div className="week-overlay">
                     <div className="unlock-message">
-                      <p>{week.label} (Will unlock on {week.unlockDate})</p>
+                      <p>{week.label}: {week.title} (Will unlock on {week.unlockDate})</p>
                     </div>
                   </div>
                 )}
@@ -340,12 +462,75 @@ function App() {
                         onMouseDown={(e) => handleMouseDown(e, entry.id)}
                         onClick={() => setSelectedEntry(selectedEntry?.id === entry.id ? null : entry)}
                       >
-                        <div className="washi-tape"></div>
+                        <div 
+                          className="washi-tape" 
+                          style={{ backgroundColor: ENTRY_TYPES[entry.entryType]?.color || '#3b82f6' }}
+                        >
+                          <span style={{ position: 'relative', color: 'white', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                            {ENTRY_TYPES[entry.entryType]?.label || 'Entry'}
+                          </span>
+                        </div>
                         <div className="card-inner">
-                          <div className="card-date">{entry.date}</div>
                           <div className="card-preview">
-                            {entry.insight && <p>💡 {entry.insight.substring(0, 40)}...</p>}
+                            <p style={{ fontSize: '15px', fontWeight: '700', margin: '0 0 12px 0', color: '#000', lineHeight: '1.4' }}>
+                              {entry.title}
+                            </p>
+                            <p style={{ fontSize: '13px', color: '#4b5563', lineHeight: '1.5', marginBottom: '16px' }}>
+                              {entry.content.substring(0, 50)}...
+                            </p>
+                            <p style={{ fontSize: '11px', color: '#bfdbfe', margin: '0', position: 'absolute', bottom: '12px', right: '12px' }}>
+                              {entry.date}
+                            </p>
                           </div>
+                          {selectedEntry?.id === entry.id && isSignedIn && (
+                            <>
+                              {/* Delete X Button - Top Right Corner */}
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setDeleteConfirmId(entry.id)
+                                }}
+                                style={{
+                                  position: 'absolute',
+                                  top: '8px',
+                                  right: '8px',
+                                  padding: '4px 8px',
+                                  fontSize: '20px',
+                                  background: 'transparent',
+                                  color: '#dc2626',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  lineHeight: '1'
+                                }}
+                              >
+                                ✕
+                              </button>
+                              {/* Edit Button - Bottom Right */}
+                              <div style={{ position: 'absolute', bottom: '12px', right: '12px' }}>
+                                <button 
+                                  className="edit-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setSelectedEntry(null)
+                                    setFormData({ type: entry.entryType, title: entry.title, content: entry.content })
+                                    setEditingEntry(entry)
+                                    setShowNewEntry(true)
+                                  }}
+                                  style={{
+                                    padding: '6px 12px',
+                                    fontSize: '12px',
+                                    background: '#2563eb',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  Edit
+                                </button>
+                              </div>
+                            </>
+                          )}
                         </div>
                         <div className="envelope-flap"></div>
                       </div>
@@ -353,8 +538,8 @@ function App() {
                   })}
                 </div>
 
-                {/* Add Button & Camera Button - Current Week Only */}
-                {status === 'current' && !isLocked && (
+                {/* Add Button & Camera Button - Current Week Only & Signed In */}
+                {status === 'current' && !isLocked && isSignedIn && (
                   <>
                     <button className="camera-button" onClick={() => document.getElementById('camera-input').click()}>
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -372,8 +557,8 @@ function App() {
           {/* Final "You made it!" Section */}
           <div className="week-container celebration">
             <div className="celebration-content">
-              <h2>Woah you made it here!</h2>
-              <p>You've completed the 6-week leadership journey. 🎉</p>
+              <h2>You've completed the Leadership by Design course! 🎉</h2>
+              <p>Congratulations on your leadership journey.</p>
             </div>
           </div>
         </div>
@@ -392,35 +577,46 @@ function App() {
         <div className="overlay" onClick={() => setShowNewEntry(false)}>
           <div className="modal new-entry-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>New Entry</h2>
-              <button className="close-btn" onClick={() => setShowNewEntry(false)}>✕</button>
+              <h2>{editingEntry ? 'Edit Entry' : 'New Entry'}</h2>
+              <button className="close-btn" onClick={() => { setShowNewEntry(false); setEditingEntry(null) }}>✕</button>
             </div>
             <div className="modal-body">
               <div className="form-group">
-                <label><StarInsight /> Key Insight</label>
-                <textarea
-                  value={formData.insight}
-                  onChange={(e) => setFormData({ ...formData, insight: e.target.value })}
-                  placeholder="What did you learn this week?"
+                <label>Entry Type</label>
+                <select
+                  value={formData.type}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                >
+                  <option value="insight">{ENTRY_TYPES.insight.label}</option>
+                  <option value="learning">{ENTRY_TYPES.learning.label}</option>
+                  <option value="growth">{ENTRY_TYPES.growth.label}</option>
+                  <option value="speaker-notes">{ENTRY_TYPES['speaker-notes'].label}</option>
+                  <option value="events">{ENTRY_TYPES.events.label}</option>
+                  <option value="thought">{ENTRY_TYPES.thought.label}</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Title</label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="Give your entry a title..."
                 />
               </div>
               <div className="form-group">
-                <label><StarGoal /> Goal</label>
+                <label>Content</label>
                 <textarea
-                  value={formData.goal}
-                  onChange={(e) => setFormData({ ...formData, goal: e.target.value })}
-                  placeholder="What's your goal?"
+                  value={formData.content}
+                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                  placeholder={getContentPlaceholder(formData.type)}
+                  rows="6"
                 />
               </div>
-              <div className="form-group">
-                <label><StarAction /> Action</label>
-                <textarea
-                  value={formData.action}
-                  onChange={(e) => setFormData({ ...formData, action: e.target.value })}
-                  placeholder="What will you do differently?"
-                />
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button className="btn-primary" onClick={handleAddEntry}>{editingEntry ? 'Update Entry' : 'Save Entry'}</button>
+                {editingEntry && <button className="btn-secondary" onClick={() => { setEditingEntry(null); setShowNewEntry(false) }}>Cancel</button>}
               </div>
-              <button className="btn-primary" onClick={handleAddEntry}>Save Entry</button>
             </div>
           </div>
         </div>
@@ -458,37 +654,169 @@ function App() {
         <div className="overlay" onClick={() => setSelectedEntry(null)}>
           <div className="modal entry-detail-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>{selectedEntry.date}</h2>
+              <div>
+                <h2>{selectedEntry.date}</h2>
+                {selectedEntry.entryType && (
+                  <p style={{ fontSize: '13px', color: '#6b7280', margin: '4px 0 0 0' }}>
+                    {ENTRY_TYPES[selectedEntry.entryType]?.label}
+                  </p>
+                )}
+              </div>
               <button className="close-btn" onClick={() => setSelectedEntry(null)}>✕</button>
             </div>
             <div className="modal-body">
-              {selectedEntry.type === 'photo' && selectedEntry.image && (
+              {selectedEntry.image && (
                 <img src={selectedEntry.image} alt="entry" className="detail-image" />
               )}
-              {selectedEntry.insight && (
+              {selectedEntry.title && (
                 <div className="detail-field">
-                  <h3><StarInsight /> Insight</h3>
-                  <p>{selectedEntry.insight}</p>
+                  <h3>{selectedEntry.title}</h3>
                 </div>
               )}
-              {selectedEntry.goal && (
+              {selectedEntry.content && (
                 <div className="detail-field">
-                  <h3><StarGoal /> Goal</h3>
-                  <p>{selectedEntry.goal}</p>
-                </div>
-              )}
-              {selectedEntry.action && (
-                <div className="detail-field">
-                  <h3><StarAction /> Action</h3>
-                  <p>{selectedEntry.action}</p>
+                  <p>{selectedEntry.content}</p>
                 </div>
               )}
               {selectedEntry.caption && (
                 <div className="detail-field">
-                  <h3>Caption</h3>
+                  <h4>Photo Caption</h4>
                   <p>{selectedEntry.caption}</p>
                 </div>
               )}
+              <button 
+                className="btn-primary"
+                onClick={() => {
+                  setSelectedEntry(null)
+                  setFormData({ type: selectedEntry.entryType, title: selectedEntry.title, content: selectedEntry.content })
+                  setEditingEntry(selectedEntry)
+                  setShowNewEntry(true)
+                }}
+                style={{ marginTop: '16px' }}
+              >
+                Edit Entry
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmId && (
+        <div className="overlay" onClick={() => setDeleteConfirmId(null)}>
+          <div className="modal new-entry-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '350px' }}>
+            <div className="modal-header">
+              <h2>Delete Entry?</h2>
+              <button className="close-btn" onClick={() => setDeleteConfirmId(null)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ fontSize: '14px', color: '#4b5563', marginBottom: '24px' }}>
+                Are you sure you want to delete this entry? This action cannot be undone.
+              </p>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button 
+                  onClick={() => {
+                    setEntries(entries.filter(e => e.id !== deleteConfirmId))
+                    setSelectedEntry(null)
+                    setDeleteConfirmId(null)
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    fontSize: '13px',
+                    background: '#dc2626',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '0px',
+                    cursor: 'pointer',
+                    fontFamily: 'Space Grotesk, sans-serif',
+                    fontWeight: '700'
+                  }}
+                >
+                  Delete
+                </button>
+                <button 
+                  onClick={() => setDeleteConfirmId(null)}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    fontSize: '13px',
+                    background: 'transparent',
+                    color: '#6b7280',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0px',
+                    cursor: 'pointer',
+                    fontFamily: 'Space Grotesk, sans-serif',
+                    fontWeight: '700'
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sign In Modal - Optional, can be dismissed */}
+      {showSignIn && (
+        <div className="overlay" onClick={() => setShowSignIn(false)}>
+          <div className="modal new-entry-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h2>Sign In</h2>
+              <button className="close-btn" onClick={() => setShowSignIn(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Email</label>
+                <input
+                  type="email"
+                  value={signInEmail}
+                  onChange={(e) => setSignInEmail(e.target.value)}
+                  placeholder="jhuarachi654@gmail.com"
+                  onKeyPress={(e) => e.key === 'Enter' && handleSignIn()}
+                  style={{
+                    padding: '12px',
+                    border: '1px solid #e5e7eb',
+                    background: 'white',
+                    color: '#000',
+                    fontFamily: 'Space Grotesk, sans-serif',
+                    fontSize: '13px',
+                    borderRadius: '0px',
+                    width: '100%',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+              <div className="form-group">
+                <label>Password</label>
+                <input
+                  type="password"
+                  value={signInPassword}
+                  onChange={(e) => setSignInPassword(e.target.value)}
+                  placeholder="••••••••"
+                  onKeyPress={(e) => e.key === 'Enter' && handleSignIn()}
+                  style={{
+                    padding: '12px',
+                    border: '1px solid #e5e7eb',
+                    background: 'white',
+                    color: '#000',
+                    fontFamily: 'Space Grotesk, sans-serif',
+                    fontSize: '13px',
+                    borderRadius: '0px',
+                    width: '100%',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+              {signInError && (
+                <p style={{ color: '#dc2626', fontSize: '13px', margin: '8px 0', fontFamily: 'Space Grotesk, sans-serif' }}>
+                  {signInError}
+                </p>
+              )}
+              <button className="btn-primary" onClick={handleSignIn} style={{ width: '100%' }}>
+                Sign In
+              </button>
             </div>
           </div>
         </div>

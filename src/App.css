@@ -255,6 +255,9 @@ html, body {
   );
   transform: rotate(-2deg);
   z-index: 25;
+  display: flex;
+  align-items: center;
+  padding-left: 16px;
 }
 
 /* Card Inner */
@@ -611,6 +614,23 @@ html, body {
 }
 
 .form-group input[type="text"]:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.form-group select {
+  padding: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-dark);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 13px;
+  transition: border-color 0.2s ease;
+  cursor: pointer;
+}
+
+.form-group select:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
