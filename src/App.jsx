@@ -222,13 +222,63 @@ function App() {
   const captionInputRef = useRef(null)
   const scatterRef = useRef(null)
 
-  // Load entries from D1 on mount
+  // TEMPORARY — migration banner state
+  const [showMigrateBanner, setShowMigrateBanner] = useState(false)
+  const [migrateStatus, setMigrateStatus] = useState('idle') // 'idle' | 'running' | 'done' | 'error'
+  const [migrateMessage, setMigrateMessage] = useState('')
+
+  // Load entries from D1 on mount; show migrate banner if localStorage has data and D1 is empty
   useEffect(() => {
     fetch('/api/entries')
       .then(r => r.json())
-      .then(data => setEntries(data))
+      .then(data => {
+        setEntries(data)
+        const local = localStorage.getItem('leadershipDiary')
+        const localEntries = local ? JSON.parse(local) : []
+        if (localEntries.length > 0 && data.length === 0) {
+          setShowMigrateBanner(true)
+        }
+      })
       .catch(() => {})
   }, [])
+
+  // TEMPORARY — run localStorage → D1 migration
+  const handleMigrate = async () => {
+    setMigrateStatus('running')
+    setMigrateMessage('Migrating…')
+
+    const raw = localStorage.getItem('leadershipDiary')
+    const localEntries = raw ? JSON.parse(raw) : []
+
+    let migrated = 0
+    let skipped  = 0
+    let failed   = 0
+
+    for (const entry of localEntries) {
+      const payload = entry.type === 'photo'
+        ? { entryType: 'photo', weekIndex: entry.weekIndex ?? 0, image: entry.image ?? null, caption: entry.caption ?? '', date: entry.date, timestamp: entry.timestamp }
+        : { entryType: entry.entryType, weekIndex: entry.weekIndex ?? 0, title: entry.title, content: entry.content, date: entry.date, timestamp: entry.timestamp }
+
+      try {
+        const res = await authFetch('/api/entries', { method: 'POST', body: JSON.stringify(payload) })
+        if (res.ok)                { migrated++ }
+        else if (res.status === 409) { skipped++ }
+        else                       { failed++ }
+      } catch { failed++ }
+    }
+
+    if (failed === 0) {
+      localStorage.removeItem('leadershipDiary')
+      const data = await fetch('/api/entries').then(r => r.json())
+      setEntries(data)
+      setMigrateStatus('done')
+      setMigrateMessage(`Migrated ${migrated} entries${skipped ? `, skipped ${skipped} duplicates` : ''}. localStorage cleared.`)
+      setShowMigrateBanner(false)
+    } else {
+      setMigrateStatus('error')
+      setMigrateMessage(`${migrated} migrated, ${failed} failed. localStorage NOT cleared — try again.`)
+    }
+  }
 
   // Update time every second
   useEffect(() => {
@@ -620,6 +670,47 @@ function App() {
         </button>
         </div>
       </header>
+
+      {/* TEMPORARY — Migration banner */}
+      {(showMigrateBanner || migrateStatus === 'done' || migrateStatus === 'error') && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '12px',
+          padding: '10px 24px',
+          background: migrateStatus === 'done' ? '#d1fae5' : migrateStatus === 'error' ? '#fee2e2' : '#fef9c3',
+          borderBottom: `1px solid ${migrateStatus === 'done' ? '#6ee7b7' : migrateStatus === 'error' ? '#fca5a5' : '#fde68a'}`,
+          fontSize: '13px', fontFamily: 'Space Grotesk, sans-serif',
+        }}>
+          <span style={{ flex: 1, color: '#1f2937' }}>
+            {migrateStatus === 'idle'
+              ? 'localStorage entries detected — D1 database is empty.'
+              : migrateMessage}
+          </span>
+          {(migrateStatus === 'idle' || migrateStatus === 'error') && (
+            <button
+              onClick={handleMigrate}
+              disabled={migrateStatus === 'running'}
+              style={{
+                padding: '6px 16px', fontSize: '13px', fontWeight: '700',
+                background: '#2563eb', color: 'white', border: 'none',
+                borderRadius: '0px', cursor: 'pointer', fontFamily: 'Space Grotesk, sans-serif',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Migrate Entries
+            </button>
+          )}
+          <button
+            onClick={() => { setShowMigrateBanner(false); setMigrateStatus('idle') }}
+            style={{
+              padding: '4px 8px', fontSize: '18px', lineHeight: 1,
+              background: 'transparent', border: 'none', cursor: 'pointer', color: '#6b7280',
+            }}
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Main Canvas - Horizontal Scrolling Weeks */}
       <div className="canvas">
