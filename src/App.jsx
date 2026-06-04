@@ -170,21 +170,29 @@ function App() {
   useEffect(() => {
     const saved = localStorage.getItem('leadershipDiary')
     if (saved) {
-      const loadedEntries = JSON.parse(saved)
-      setEntries(loadedEntries)
+      let loadedEntries = JSON.parse(saved)
       
-      // Initialize positions for entries that don't have them
-      const newPositions = {}
-      loadedEntries.forEach(entry => {
+      // Migrate entries without positions to include them
+      loadedEntries = loadedEntries.map(entry => {
         if (!entry.positionLeft || !entry.positionTop) {
+          // Generate position once and store it in the entry
           const isPhoto = entry.type === 'photo'
-          const randomPos = getRandomScatteredPosition(isPhoto, newPositions)
-          newPositions[entry.id] = randomPos
+          let left, top
+          
+          if (isPhoto) {
+            left = Math.random() * 12 + 3
+            top = Math.random() * 700 + 80
+          } else {
+            left = Math.random() * 18 + 67
+            top = Math.random() * 700 + 80
+          }
+          
+          return { ...entry, positionLeft: left, positionTop: top }
         }
+        return entry
       })
-      if (Object.keys(newPositions).length > 0) {
-        setPositions(newPositions)
-      }
+      
+      setEntries(loadedEntries)
     }
   }, [])
 
@@ -499,8 +507,8 @@ function App() {
                           key={entry.id}
                           className="polaroid floating"
                           style={{
-                            left: customPos ? `${customPos.left}px` : (entry.positionLeft ? `${entry.positionLeft}%` : (positions[entry.id] ? `${positions[entry.id].left}%` : '5%')),
-                            top: customPos ? `${customPos.top}px` : (entry.positionTop ? `${entry.positionTop}px` : (positions[entry.id] ? `${positions[entry.id].top}px` : '80px')),
+                            left: customPos ? `${customPos.left}px` : `${entry.positionLeft}%`,
+                            top: customPos ? `${customPos.top}px` : `${entry.positionTop}px`,
                             transform: `rotate(${photoRotations[i % 5]}deg)`,
                             cursor: draggingId === entry.id ? 'grabbing' : 'grab',
                           }}
@@ -521,8 +529,8 @@ function App() {
                         key={entry.id}
                         className="entry-card scattered floating"
                         style={{
-                          left: customPos ? `${customPos.left}px` : (entry.positionLeft ? `${entry.positionLeft}%` : (positions[entry.id] ? `${positions[entry.id].left}%` : '70%')),
-                          top: customPos ? `${customPos.top}px` : (entry.positionTop ? `${entry.positionTop}px` : (positions[entry.id] ? `${positions[entry.id].top}px` : '80px')),
+                          left: customPos ? `${customPos.left}px` : `${entry.positionLeft}%`,
+                          top: customPos ? `${customPos.top}px` : `${entry.positionTop}px`,
                           transform: `rotate(${cardRotations[i % 4]}deg)`,
                           cursor: draggingId === entry.id ? 'grabbing' : 'grab',
                         }}
