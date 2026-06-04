@@ -82,7 +82,7 @@ const ENTRY_TYPES = {
 const CARD_W = 340
 const CARD_H = 230
 const PHOTO_W = 190
-const PHOTO_H = 280
+const PHOTO_H = 320
 const MIN_GAP = 32  // minimum gap between items (stricter)
 const TOP_OFFSET = 72 // clear the week label
 
