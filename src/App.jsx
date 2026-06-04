@@ -102,6 +102,7 @@ function App() {
   const [selectedEntry, setSelectedEntry] = useState(null)
   const [editingEntry, setEditingEntry] = useState(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState(null)
+  const [editingPhotoCaption, setEditingPhotoCaption] = useState('')
   const [formData, setFormData] = useState({ type: 'insight', title: '', content: '' })
   const [currentTime, setCurrentTime] = useState(new Date())
   const [isSignedIn, setIsSignedIn] = useState(() => {
@@ -366,6 +367,7 @@ function App() {
                 e.target.style.borderColor = '#d1d5db'
                 e.target.style.color = '#6b7280'
               }}
+              className="sign-out-btn"
             >
               Sign Out
             </button>
@@ -709,15 +711,96 @@ function App() {
               <button 
                 className="btn-primary"
                 onClick={() => {
-                  setSelectedEntry(null)
-                  setFormData({ type: selectedEntry.entryType, title: selectedEntry.title, content: selectedEntry.content })
-                  setEditingEntry(selectedEntry)
-                  setShowNewEntry(true)
+                  if (selectedEntry.image) {
+                    // Photo entry - edit caption
+                    setEditingPhotoCaption(selectedEntry.caption || '')
+                  } else {
+                    // Text entry - edit content
+                    setSelectedEntry(null)
+                    setFormData({ type: selectedEntry.entryType, title: selectedEntry.title, content: selectedEntry.content })
+                    setEditingEntry(selectedEntry)
+                    setShowNewEntry(true)
+                  }
                 }}
                 style={{ marginTop: '16px' }}
               >
-                Edit Entry
+                {selectedEntry.image ? 'Edit Caption' : 'Edit Entry'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Photo Caption Edit Modal */}
+      {editingPhotoCaption !== false && selectedEntry?.image && (
+        <div className="overlay" onClick={() => setEditingPhotoCaption(false)}>
+          <div className="modal new-entry-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <div className="modal-header">
+              <h2>Edit Photo Caption</h2>
+              <button className="close-btn" onClick={() => setEditingPhotoCaption(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <img src={selectedEntry.image} alt="entry" style={{ width: '100%', marginBottom: '16px', maxHeight: '300px', objectFit: 'cover' }} />
+              <div className="form-group">
+                <label>Caption</label>
+                <input
+                  type="text"
+                  value={editingPhotoCaption}
+                  onChange={(e) => setEditingPhotoCaption(e.target.value)}
+                  placeholder="Optional caption..."
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #d1d5db',
+                    background: '#ffffff',
+                    color: '#000000',
+                    fontFamily: 'Space Grotesk, sans-serif',
+                    fontSize: '13px',
+                    fontWeight: '400',
+                    borderRadius: '0px',
+                    boxSizing: 'border-box',
+                    transition: 'border-color 0.2s ease'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#2563eb'
+                    e.target.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.1)'
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#d1d5db'
+                    e.target.style.boxShadow = 'none'
+                  }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button 
+                  className="btn-primary"
+                  onClick={() => {
+                    setEntries(entries.map(e => e.id === selectedEntry.id ? { ...e, caption: editingPhotoCaption } : e))
+                    setSelectedEntry(null)
+                    setEditingPhotoCaption(false)
+                  }}
+                  style={{ flex: 1 }}
+                >
+                  Save Caption
+                </button>
+                <button 
+                  onClick={() => setDeleteConfirmId(selectedEntry.id)}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    fontSize: '13px',
+                    background: '#dc2626',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '0px',
+                    cursor: 'pointer',
+                    fontFamily: 'Space Grotesk, sans-serif',
+                    fontWeight: '700'
+                  }}
+                >
+                  Delete Photo
+                </button>
+              </div>
             </div>
           </div>
         </div>

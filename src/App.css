@@ -286,6 +286,35 @@ html, body {
   text-overflow: ellipsis;
 }
 
+.app.dark .card-preview {
+  color: #cbd5e1;
+}
+
+.app.dark .card-preview p:first-child {
+  color: #e2e8f0;
+}
+
+/* Dark mode content text - override inline styles */
+.app.dark .entry-card .card-preview p:nth-child(2) {
+  color: #cbd5e1 !important;
+}
+
+/* Dark mode date text */
+.app.dark .entry-card .card-preview p:nth-child(3) {
+  color: #94a3b8 !important;
+}
+
+/* Dark mode sign-out button */
+.app.dark .sign-out-btn {
+  color: #cbd5e1 !important;
+  border-color: #475569 !important;
+}
+
+.app.dark .sign-out-btn:hover {
+  color: #e2e8f0 !important;
+  border-color: #64748b !important;
+}
+
 .card-preview p {
   margin: 0;
 }
