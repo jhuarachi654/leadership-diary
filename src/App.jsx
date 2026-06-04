@@ -465,9 +465,9 @@ function App() {
                 )}
 
                 {/* Two Column Layout */}
-                <div style={{ display: 'flex', gap: '40px', alignItems: 'flex-start' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', width: '100%', gridAutoFlow: 'row' }}>
                   {/* Left Column: Photos */}
-                  <div style={{ flex: 1, minWidth: '300px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', gridColumn: '1' }}>
                     {weekEntries.filter(e => e.type === 'photo').map((entry) => (
                         <div
                           key={entry.id}
@@ -488,7 +488,7 @@ function App() {
                   </div>
                   
                   {/* Right Column: Text Entries */}
-                  <div style={{ flex: 1, minWidth: '300px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', gridColumn: '2' }}>
                     {weekEntries.filter(e => e.type !== 'photo').map((entry) => (
                       <div
                         key={entry.id}
@@ -515,7 +515,7 @@ function App() {
                               {entry.title}
                             </p>
                             <p style={{ fontSize: '13px', color: '#4b5563', lineHeight: '1.5', marginBottom: '16px' }}>
-                              {entry.content.substring(0, 50)}...
+                              {entry.content}
                             </p>
                             <p style={{ fontSize: '11px', color: '#64748b', margin: '0', position: 'absolute', bottom: '12px', right: '12px' }}>
                               {entry.date}

@@ -283,8 +283,8 @@ html, body {
   font-size: 12px;
   line-height: 1.4;
   color: var(--text-dark);
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  text-overflow: clip;
   padding-right: 80px;
   position: relative;
 }
