@@ -78,6 +78,47 @@ const ENTRY_TYPES = {
   thought: { label: 'Thought', color: '#ec4899' }
 }
 
+// Generate random scattered positions for entries
+const getRandomScatteredPosition = (isPhoto, existingPositions = {}) => {
+  const maxAttempts = 50
+  
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    let left, top
+    
+    if (isPhoto) {
+      // Photos on left side (3-15%)
+      left = Math.random() * 12 + 3
+      top = Math.random() * 700 + 80
+    } else {
+      // Text entries on right side (67-85%)
+      left = Math.random() * 18 + 67
+      top = Math.random() * 700 + 80
+    }
+    
+    // Check for overlaps with existing entries
+    let hasOverlap = false
+    for (const pos of Object.values(existingPositions)) {
+      // Simple distance check (percentage-based)
+      const leftDiff = Math.abs(left - pos.left)
+      const topDiff = Math.abs(top - pos.top)
+      
+      if (leftDiff < 8 && topDiff < 200) {
+        hasOverlap = true
+        break
+      }
+    }
+    
+    if (!hasOverlap) {
+      return { left, top }
+    }
+  }
+  
+  // Fallback random position
+  return isPhoto 
+    ? { left: Math.random() * 12 + 3, top: Math.random() * 700 + 80 }
+    : { left: Math.random() * 18 + 67, top: Math.random() * 700 + 80 }
+}
+
 const getContentPlaceholder = (type) => {
   const placeholders = {
     insight: 'What realization or insight did you have?',
@@ -259,6 +300,9 @@ function App() {
     }
     
     setEntries([newEntry, ...entries])
+    // Assign random position for new photo
+    const randomPos = getRandomScatteredPosition(true, positions)
+    setPositions({ ...positions, [newEntry.id]: randomPos })
     setPendingPhoto(null)
     setPhotoCaption('')
   }
@@ -287,6 +331,9 @@ function App() {
       setEditingEntry(null)
     } else {
       setEntries([newEntry, ...entries])
+      // Assign random position for new entry
+      const randomPos = getRandomScatteredPosition(false, positions)
+      setPositions({ ...positions, [newEntry.id]: randomPos })
     }
     
     setFormData({ type: 'insight', title: '', content: '' })
@@ -306,9 +353,9 @@ function App() {
   }
 
   const photoRotations = [-8, 5, 3, -5, 7]
-  const photoLefts = ['8%', '12%', '5%', '15%', '10%']
+  const photoLefts = ['5%', '8%', '3%', '10%', '6%']
   const cardRotations = [-3, 2, 1, -2]
-  const cardLefts = ['58%', '62%', '55%', '68%']
+  const cardLefts = ['70%', '74%', '67%', '80%']
 
   const currentTime_display = currentTime.toLocaleDateString('en-US', {
     weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit',
@@ -434,8 +481,8 @@ function App() {
                           key={entry.id}
                           className="polaroid floating"
                           style={{
-                            left: customPos ? `${customPos.left}px` : photoLefts[i % 5],
-                            top: customPos ? `${customPos.top}px` : `${80 + (i % 3) * 200}px`,
+                            left: customPos ? `${customPos.left}px` : `${positions[entry.id]?.left || Math.random() * 12 + 3}%`,
+                            top: customPos ? `${customPos.top}px` : `${positions[entry.id]?.top || Math.random() * 700 + 80}px`,
                             transform: `rotate(${photoRotations[i % 5]}deg)`,
                             cursor: draggingId === entry.id ? 'grabbing' : 'grab',
                           }}
@@ -456,8 +503,8 @@ function App() {
                         key={entry.id}
                         className="entry-card scattered floating"
                         style={{
-                          left: customPos ? `${customPos.left}px` : cardLefts[i % 4],
-                          top: customPos ? `${customPos.top}px` : `${80 + Math.floor(i / 2) * 200}px`,
+                          left: customPos ? `${customPos.left}px` : `${positions[entry.id]?.left || Math.random() * 18 + 67}%`,
+                          top: customPos ? `${customPos.top}px` : `${positions[entry.id]?.top || Math.random() * 700 + 80}px`,
                           transform: `rotate(${cardRotations[i % 4]}deg)`,
                           cursor: draggingId === entry.id ? 'grabbing' : 'grab',
                         }}
@@ -480,7 +527,7 @@ function App() {
                             <p style={{ fontSize: '13px', color: '#4b5563', lineHeight: '1.5', marginBottom: '16px' }}>
                               {entry.content.substring(0, 50)}...
                             </p>
-                            <p style={{ fontSize: '11px', color: '#bfdbfe', margin: '0', position: 'absolute', bottom: '12px', right: '12px' }}>
+                            <p style={{ fontSize: '11px', color: '#64748b', margin: '0', position: 'absolute', bottom: '12px', right: '12px' }}>
                               {entry.date}
                             </p>
                           </div>
