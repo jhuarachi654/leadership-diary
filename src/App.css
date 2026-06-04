@@ -396,7 +396,7 @@ html, body {
 
 /* === POLAROID === */
 .polaroid {
-  height: 340px;
+  height: auto;
   background: var(--card-bg);
   border: 8px solid white;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -412,27 +412,26 @@ html, body {
 
 .polaroid img {
   width: 100%;
-  height: 175px;
+  height: 150px;
   object-fit: cover;
   background: var(--surface);
+  flex-shrink: 0;
 }
 
 .polaroid-content {
-  padding: 12px 12px 8px;
-  flex: 1;
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .polaroid-caption {
   font-size: 11px;
   color: var(--text-dark);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: block;
-  width: 100%;
+  line-height: 1.4;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 .polaroid-date {
@@ -440,7 +439,6 @@ html, body {
   color: var(--text-light);
   font-family: 'Monaco', monospace;
   letter-spacing: 0.3px;
-  margin-top: auto;
 }
 
 /* === PLUS BUTTON === */
