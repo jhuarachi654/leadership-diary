@@ -287,6 +287,8 @@ function App() {
   const savePendingPhoto = () => {
     if (!pendingPhoto) return
     
+    const randomPos = getRandomScatteredPosition(true, positions)
+    
     const newEntry = {
       id: Date.now(),
       type: 'photo',
@@ -297,12 +299,11 @@ function App() {
         weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit',
       }),
       timestamp: Date.now(),
+      positionLeft: randomPos.left,
+      positionTop: randomPos.top,
     }
     
     setEntries([newEntry, ...entries])
-    // Assign random position for new photo
-    const randomPos = getRandomScatteredPosition(true, positions)
-    setPositions({ ...positions, [newEntry.id]: randomPos })
     setPendingPhoto(null)
     setPhotoCaption('')
   }
@@ -314,6 +315,8 @@ function App() {
       return
     }
 
+    const randomPos = getRandomScatteredPosition(false, positions)
+    
     const newEntry = {
       id: Date.now(),
       entryType: formData.type,
@@ -324,6 +327,8 @@ function App() {
         weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit',
       }),
       timestamp: Date.now(),
+      positionLeft: randomPos.left,
+      positionTop: randomPos.top,
     }
 
     if (editingEntry) {
@@ -331,9 +336,6 @@ function App() {
       setEditingEntry(null)
     } else {
       setEntries([newEntry, ...entries])
-      // Assign random position for new entry
-      const randomPos = getRandomScatteredPosition(false, positions)
-      setPositions({ ...positions, [newEntry.id]: randomPos })
     }
     
     setFormData({ type: 'insight', title: '', content: '' })
@@ -481,8 +483,8 @@ function App() {
                           key={entry.id}
                           className="polaroid floating"
                           style={{
-                            left: customPos ? `${customPos.left}px` : `${positions[entry.id]?.left || Math.random() * 12 + 3}%`,
-                            top: customPos ? `${customPos.top}px` : `${positions[entry.id]?.top || Math.random() * 700 + 80}px`,
+                            left: customPos ? `${customPos.left}px` : `${entry.positionLeft || Math.random() * 12 + 3}%`,
+                            top: customPos ? `${customPos.top}px` : `${entry.positionTop || Math.random() * 700 + 80}px`,
                             transform: `rotate(${photoRotations[i % 5]}deg)`,
                             cursor: draggingId === entry.id ? 'grabbing' : 'grab',
                           }}
@@ -503,8 +505,8 @@ function App() {
                         key={entry.id}
                         className="entry-card scattered floating"
                         style={{
-                          left: customPos ? `${customPos.left}px` : `${positions[entry.id]?.left || Math.random() * 18 + 67}%`,
-                          top: customPos ? `${customPos.top}px` : `${positions[entry.id]?.top || Math.random() * 700 + 80}px`,
+                          left: customPos ? `${customPos.left}px` : `${entry.positionLeft || Math.random() * 18 + 67}%`,
+                          top: customPos ? `${customPos.top}px` : `${entry.positionTop || Math.random() * 700 + 80}px`,
                           transform: `rotate(${cardRotations[i % 4]}deg)`,
                           cursor: draggingId === entry.id ? 'grabbing' : 'grab',
                         }}
