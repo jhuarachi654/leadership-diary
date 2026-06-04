@@ -83,56 +83,70 @@ const CARD_W = 340
 const CARD_H = 230
 const PHOTO_W = 190
 const PHOTO_H = 210
-const GAP = 24        // minimum space between items
+const MIN_GAP = 32  // minimum gap between items (stricter)
 const TOP_OFFSET = 72 // clear the week label
 
-const rectsOverlap = (ax, ay, aw, ah, bx, by, bw, bh) =>
-  ax < bx + bw + GAP &&
-  ax + aw + GAP > bx &&
-  ay < by + bh + GAP &&
-  ay + ah + GAP > by
+/**
+ * Strict collision check with gap buffer on all sides.
+ */
+const checkOverlap = (ax, ay, aw, ah, bx, by, bw, bh) => {
+  const aLeft = ax - MIN_GAP
+  const aRight = ax + aw + MIN_GAP
+  const aTop = ay - MIN_GAP
+  const aBottom = ay + ah + MIN_GAP
+  
+  const bLeft = bx - MIN_GAP
+  const bRight = bx + bw + MIN_GAP
+  const bTop = by - MIN_GAP
+  const bBottom = by + bh + MIN_GAP
+  
+  return !(aRight < bLeft || bRight < aLeft || aBottom < bTop || bBottom < aTop)
+}
 
 /**
- * Find a non-overlapping pixel position.
- * Photos: left 35% of canvas. Cards: right 65%.
- * vw / vh are the scatter container's pixel dimensions.
+ * Find a non-overlapping pixel position with STRICT collision.
  */
 const placeItem = (isPhoto, placed, vw, vh) => {
   const w = isPhoto ? PHOTO_W : CARD_W
   const h = isPhoto ? PHOTO_H : CARD_H
 
-  // Zone boundaries (pixels)
-  const zoneMinX = isPhoto ? GAP : Math.round(vw * 0.35)
-  const zoneMaxX = isPhoto ? Math.round(vw * 0.38) : vw - w - GAP
+  const zoneMinX = isPhoto ? MIN_GAP : Math.round(vw * 0.35)
+  const zoneMaxX = isPhoto ? Math.round(vw * 0.38) : vw - w - MIN_GAP
 
   const minY = TOP_OFFSET
-  const maxY = Math.max(minY, vh - h - GAP)
+  const maxY = Math.max(minY + 50, vh - h - MIN_GAP)
 
-  for (let attempt = 0; attempt < 200; attempt++) {
+  // Try 300 times with stricter collision
+  for (let attempt = 0; attempt < 300; attempt++) {
     const left = zoneMinX + Math.random() * Math.max(1, zoneMaxX - zoneMinX)
-    const top  = minY    + Math.random() * Math.max(1, maxY - minY)
+    const top  = minY + Math.random() * Math.max(1, maxY - minY)
 
-    const cl = Math.max(GAP, Math.min(left, vw - w - GAP))
-    const ct = Math.max(minY, Math.min(top,  vh - h - GAP))
+    const cl = Math.max(MIN_GAP, Math.min(left, vw - w - MIN_GAP))
+    const ct = Math.max(minY, Math.min(top, vh - h - MIN_GAP))
 
-    let clash = false
+    let hasOverlap = false
     for (const r of placed) {
-      if (rectsOverlap(cl, ct, w, h, r.x, r.y, r.w, r.h)) { clash = true; break }
+      if (checkOverlap(cl, ct, w, h, r.x, r.y, r.w, r.h)) {
+        hasOverlap = true
+        break
+      }
     }
-    if (!clash) return { left: cl, top: ct }
+    if (!hasOverlap) return { left: cl, top: ct }
   }
 
-  // Fallback: stack below everything already placed
-  const maxExisting = placed.reduce((m, r) => Math.max(m, r.y + r.h), minY)
+  // Fallback: stack vertically
+  const maxY_existing = placed.length > 0 
+    ? Math.max(...placed.map(r => r.y + r.h)) + MIN_GAP
+    : minY
+  
   return {
-    left: Math.max(GAP, Math.min(zoneMinX + Math.random() * 160, vw - w - GAP)),
-    top:  maxExisting + GAP,
+    left: Math.max(MIN_GAP, zoneMinX + Math.random() * 100),
+    top: Math.min(maxY_existing, vh - h - MIN_GAP),
   }
 }
 
 /**
  * Build pixel positions for every entry in a week.
- * Returns { [id]: { left, top } }
  */
 const buildWeekPositions = (weekEntries, vw, vh) => {
   const placed = []
@@ -315,7 +329,6 @@ function App() {
 
   const handleMouseMove = useCallback((e) => {
     if (draggingId === null) return
-    // Find the scatter container for this entry
     const containers = document.querySelectorAll('.week-scatter')
     let containerRect = null
     for (const c of containers) {
@@ -326,7 +339,6 @@ function App() {
         break
       }
     }
-    // Fallback to first container
     if (!containerRect && containers[0]) containerRect = containers[0].getBoundingClientRect()
     if (!containerRect) return
 
@@ -335,20 +347,43 @@ function App() {
     const w = isPhoto ? PHOTO_W : CARD_W
     const h = isPhoto ? PHOTO_H : CARD_H
 
-    const newLeft = Math.max(0, Math.min(
+    let newLeft = Math.max(0, Math.min(
       e.clientX - containerRect.left - dragOffset.x,
       containerRect.width - w
     ))
-    const newTop = Math.max(0, Math.min(
+    let newTop = Math.max(0, Math.min(
       e.clientY - containerRect.top - dragOffset.y,
       containerRect.height - h
     ))
+
+    // Check for collisions with other entries in the same week
+    const weekEntries = entries.filter(e => e.weekIndex === entry.weekIndex && e.id !== draggingId)
+    let hasCollision = false
+    
+    for (const other of weekEntries) {
+      const otherPos = positions[other.id]
+      if (!otherPos) continue
+      
+      const otherIsPhoto = other.type === 'photo'
+      const otherW = otherIsPhoto ? PHOTO_W : CARD_W
+      const otherH = otherIsPhoto ? PHOTO_H : CARD_H
+      
+      if (checkOverlap(newLeft, newTop, w, h, otherPos.left, otherPos.top, otherW, otherH)) {
+        hasCollision = true
+        break
+      }
+    }
+
+    // If collision, revert to last valid position (don't update)
+    if (hasCollision) {
+      return
+    }
 
     setPositions(prev => ({
       ...prev,
       [draggingId]: { left: newLeft, top: newTop },
     }))
-  }, [draggingId, dragOffset, entries])
+  }, [draggingId, dragOffset, entries, positions])
 
   const handleMouseUp = useCallback(() => setDraggingId(null), [])
 
