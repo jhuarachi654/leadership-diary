@@ -252,6 +252,30 @@ function App() {
     return () => window.removeEventListener('resize', update)
   }, [])
 
+  // Scroll to current week on load
+  useEffect(() => {
+    const today = new Date()
+    let currentWeekIndex = 0
+    
+    for (let i = 0; i < FIXED_WEEKS.length; i++) {
+      if (today >= FIXED_WEEKS[i].start && today <= FIXED_WEEKS[i].end) {
+        currentWeekIndex = i
+        break
+      }
+      // If today is after this week, keep track of index
+      if (today > FIXED_WEEKS[i].end) {
+        currentWeekIndex = i + 1
+      }
+    }
+    
+    // Scroll to current week
+    if (scrollContainerRef.current) {
+      setTimeout(() => {
+        scrollContainerRef.current.scrollLeft = currentWeekIndex * window.innerWidth
+      }, 100)
+    }
+  }, [])
+
   // When entries change, seed positions for any entry that doesn't have one yet
   useEffect(() => {
     const { vw, vh } = containerSize
