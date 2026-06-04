@@ -464,20 +464,23 @@ function App() {
                   </div>
                 )}
 
-                {/* Two Column Masonry Layout */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px', width: '100%', gridAutoFlow: 'dense' }}>
-                  {/* Left Column: Photos */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
-                    {weekEntries.filter(e => e.type === 'photo').map((entry) => (
+                {/* Scattered Entries Container */}
+                <div className="week-scatter">
+                  {weekEntries.map((entry, i) => {
+                    const customPos = positions[entry.id]
+
+                    if (entry.type === 'photo') {
+                      return (
                         <div
                           key={entry.id}
-                          className="polaroid"
+                          className="polaroid floating"
                           style={{
-                            marginBottom: '24px',
-                            cursor: 'grab',
+                            left: customPos ? `${customPos.left}px` : photoLefts[i % 5],
+                            top: customPos ? `${customPos.top}px` : `${80 + (i % 3) * 200}px`,
+                            transform: `rotate(${photoRotations[i % 5]}deg)`,
+                            cursor: draggingId === entry.id ? 'grabbing' : 'grab',
                           }}
-                          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
-                          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                          onMouseDown={(e) => handleMouseDown(e, entry.id)}
                           onClick={() => setSelectedEntry(selectedEntry?.id === entry.id ? null : entry)}
                         >
                           <img src={entry.image} alt="memory" />
@@ -486,23 +489,20 @@ function App() {
                             <div className="polaroid-date">{entry.date}</div>
                           </div>
                         </div>
-                      ))}
-                  </div>
-                  
-                  {/* Right Column: Text Entries */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
-                    {weekEntries.filter(e => e.type !== 'photo').map((entry) => (
+                      )
+                    }
+
+                    return (
                       <div
                         key={entry.id}
-                        className="entry-card"
+                        className="entry-card scattered floating"
                         style={{
-                          position: 'relative',
-                          marginBottom: '24px',
-                          minHeight: 'auto',
-                          cursor: 'grab',
+                          left: cardLefts[i % 4],
+                          top: `${80 + Math.floor(i / 2) * 200}px`,
+                          transform: `rotate(${cardRotations[i % 4]}deg)`,
+                          cursor: draggingId === entry.id ? 'grabbing' : 'grab',
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
-                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                        onMouseDown={(e) => handleMouseDown(e, entry.id)}
                         onClick={() => setSelectedEntry(selectedEntry?.id === entry.id ? null : entry)}
                       >
                         <div 
@@ -578,8 +578,7 @@ function App() {
                         <div className="envelope-flap"></div>
                       </div>
                     )
-                  )}
-                  </div>
+                  })}
                 </div>
 
                 {/* Add Button & Camera Button - Current Week Only & Signed In */}

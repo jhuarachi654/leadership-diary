@@ -208,11 +208,13 @@ html, body {
 .entry-card,
 .polaroid {
   position: absolute;
-  width: 280px;
+  width: 350px;
 }
 
 /* === ENTRY CARD (Envelope Style) === */
 .entry-card {
+  position: absolute;
+  width: 350px;
   height: auto;
   min-height: auto;
   background: var(--card-bg);
