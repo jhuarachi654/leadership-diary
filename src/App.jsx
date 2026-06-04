@@ -82,7 +82,7 @@ const ENTRY_TYPES = {
 const CARD_W = 340
 const CARD_H = 230
 const PHOTO_W = 190
-const PHOTO_H = 320
+const PHOTO_H = 340
 const MIN_GAP = 32  // minimum gap between items (stricter)
 const TOP_OFFSET = 72 // clear the week label
 
@@ -836,7 +836,7 @@ function App() {
                   fontWeight: '400',
                   borderRadius: '0px',
                   boxSizing: 'border-box',
-                  marginBottom: '16px',
+                  marginBottom: '8px',
                   transition: 'border-color 0.2s ease'
                 }}
                 onFocus={(e) => {
@@ -848,6 +848,16 @@ function App() {
                   e.target.style.boxShadow = 'none'
                 }}
               />
+              <div style={{
+                fontSize: '11px',
+                color: '#6b7280',
+                marginBottom: '16px',
+                textAlign: 'right',
+                fontFamily: 'Monaco, monospace',
+                letterSpacing: '0.3px'
+              }}>
+                {photoCaption.length} characters
+              </div>
               <div className="modal-actions">
                 <button className="btn-primary" onClick={savePendingPhoto}>Save Photo</button>
                 <button className="btn-secondary" onClick={() => setPendingPhoto(null)}>Cancel</button>
@@ -952,6 +962,16 @@ function App() {
                     e.target.style.boxShadow = 'none'
                   }}
                 />
+                <div style={{
+                  fontSize: '11px',
+                  color: '#6b7280',
+                  marginTop: '6px',
+                  textAlign: 'right',
+                  fontFamily: 'Monaco, monospace',
+                  letterSpacing: '0.3px'
+                }}>
+                  {editingPhotoCaption.length} characters
+                </div>
               </div>
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button 
