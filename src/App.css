@@ -264,11 +264,11 @@ html, body {
 /* Card Inner */
 .card-inner {
   padding: 16px;
-  height: 100%;
+  height: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .card-date {
