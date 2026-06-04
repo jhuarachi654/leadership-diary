@@ -286,22 +286,33 @@ html, body {
   text-overflow: ellipsis;
 }
 
-.app.dark .card-preview {
-  color: #cbd5e1;
+/* === DARK MODE FIXES === */
+.app.dark .entry-card .card-preview {
+  color: #e2e8f0 !important;
 }
 
-.app.dark .card-preview p:first-child {
-  color: #e2e8f0;
-}
-
-/* Dark mode content text - override inline styles */
-.app.dark .entry-card .card-preview p:nth-child(2) {
+.app.dark .card-preview p {
   color: #cbd5e1 !important;
 }
 
-/* Dark mode date text */
-.app.dark .entry-card .card-preview p:nth-child(3) {
+/* Override inline styles for titles */
+.app.dark .card-preview p[style*="fontWeight"] {
+  color: #e2e8f0 !important;
+}
+
+/* Override inline styles for content paragraphs */
+.app.dark .card-preview p[style*="color"] {
+  color: #cbd5e1 !important;
+}
+
+/* Date text in dark mode */
+.app.dark .card-preview p[style*="position"] {
   color: #94a3b8 !important;
+}
+
+/* Card inner container */
+.app.dark .card-inner {
+  color: #e2e8f0 !important;
 }
 
 /* Dark mode sign-out button */
