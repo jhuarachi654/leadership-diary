@@ -497,8 +497,8 @@ function App() {
                         key={entry.id}
                         className="entry-card scattered floating"
                         style={{
-                          left: cardLefts[i % 4],
-                          top: `${80 + Math.floor(i / 2) * 200}px`,
+                          left: customPos ? `${customPos.left}px` : cardLefts[i % 4],
+                          top: customPos ? `${customPos.top}px` : `${80 + Math.floor(i / 2) * 200}px`,
                           transform: `rotate(${cardRotations[i % 4]}deg)`,
                           cursor: draggingId === entry.id ? 'grabbing' : 'grab',
                         }}
