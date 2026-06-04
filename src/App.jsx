@@ -169,7 +169,23 @@ function App() {
   // Load from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem('leadershipDiary')
-    if (saved) setEntries(JSON.parse(saved))
+    if (saved) {
+      const loadedEntries = JSON.parse(saved)
+      setEntries(loadedEntries)
+      
+      // Initialize positions for entries that don't have them
+      const newPositions = {}
+      loadedEntries.forEach(entry => {
+        if (!entry.positionLeft || !entry.positionTop) {
+          const isPhoto = entry.type === 'photo'
+          const randomPos = getRandomScatteredPosition(isPhoto, newPositions)
+          newPositions[entry.id] = randomPos
+        }
+      })
+      if (Object.keys(newPositions).length > 0) {
+        setPositions(newPositions)
+      }
+    }
   }, [])
 
   // Save to localStorage whenever entries change
@@ -483,8 +499,8 @@ function App() {
                           key={entry.id}
                           className="polaroid floating"
                           style={{
-                            left: customPos ? `${customPos.left}px` : `${entry.positionLeft || Math.random() * 12 + 3}%`,
-                            top: customPos ? `${customPos.top}px` : `${entry.positionTop || Math.random() * 700 + 80}px`,
+                            left: customPos ? `${customPos.left}px` : (entry.positionLeft ? `${entry.positionLeft}%` : (positions[entry.id] ? `${positions[entry.id].left}%` : '5%')),
+                            top: customPos ? `${customPos.top}px` : (entry.positionTop ? `${entry.positionTop}px` : (positions[entry.id] ? `${positions[entry.id].top}px` : '80px')),
                             transform: `rotate(${photoRotations[i % 5]}deg)`,
                             cursor: draggingId === entry.id ? 'grabbing' : 'grab',
                           }}
@@ -505,8 +521,8 @@ function App() {
                         key={entry.id}
                         className="entry-card scattered floating"
                         style={{
-                          left: customPos ? `${customPos.left}px` : `${entry.positionLeft || Math.random() * 18 + 67}%`,
-                          top: customPos ? `${customPos.top}px` : `${entry.positionTop || Math.random() * 700 + 80}px`,
+                          left: customPos ? `${customPos.left}px` : (entry.positionLeft ? `${entry.positionLeft}%` : (positions[entry.id] ? `${positions[entry.id].left}%` : '70%')),
+                          top: customPos ? `${customPos.top}px` : (entry.positionTop ? `${entry.positionTop}px` : (positions[entry.id] ? `${positions[entry.id].top}px` : '80px')),
                           transform: `rotate(${cardRotations[i % 4]}deg)`,
                           cursor: draggingId === entry.id ? 'grabbing' : 'grab',
                         }}
