@@ -213,7 +213,8 @@ html, body {
 
 /* === ENTRY CARD (Envelope Style) === */
 .entry-card {
-  height: 140px;
+  height: auto;
+  min-height: auto;
   background: var(--card-bg);
   border: 2px solid var(--border);
   overflow: visible;

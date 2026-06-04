@@ -169,31 +169,7 @@ function App() {
   // Load from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem('leadershipDiary')
-    if (saved) {
-      let loadedEntries = JSON.parse(saved)
-      
-      // Migrate entries without positions to include them
-      loadedEntries = loadedEntries.map(entry => {
-        if (!entry.positionLeft || !entry.positionTop) {
-          // Generate position once and store it in the entry
-          const isPhoto = entry.type === 'photo'
-          let left, top
-          
-          if (isPhoto) {
-            left = Math.random() * 12 + 3
-            top = Math.random() * 700 + 80
-          } else {
-            left = Math.random() * 18 + 67
-            top = Math.random() * 700 + 80
-          }
-          
-          return { ...entry, positionLeft: left, positionTop: top }
-        }
-        return entry
-      })
-      
-      setEntries(loadedEntries)
-    }
+    if (saved) setEntries(JSON.parse(saved))
   }, [])
 
   // Save to localStorage whenever entries change
@@ -311,8 +287,6 @@ function App() {
   const savePendingPhoto = () => {
     if (!pendingPhoto) return
     
-    const randomPos = getRandomScatteredPosition(true, positions)
-    
     const newEntry = {
       id: Date.now(),
       type: 'photo',
@@ -323,8 +297,6 @@ function App() {
         weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit',
       }),
       timestamp: Date.now(),
-      positionLeft: randomPos.left,
-      positionTop: randomPos.top,
     }
     
     setEntries([newEntry, ...entries])
@@ -339,8 +311,6 @@ function App() {
       return
     }
 
-    const randomPos = getRandomScatteredPosition(false, positions)
-    
     const newEntry = {
       id: Date.now(),
       entryType: formData.type,
@@ -351,8 +321,6 @@ function App() {
         weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit',
       }),
       timestamp: Date.now(),
-      positionLeft: randomPos.left,
-      positionTop: randomPos.top,
     }
 
     if (editingEntry) {
@@ -496,23 +464,18 @@ function App() {
                   </div>
                 )}
 
-                {/* Scattered Entries Container */}
-                <div className="week-scatter">
-                  {weekEntries.map((entry, i) => {
-                    const customPos = positions[entry.id]
-
-                    if (entry.type === 'photo') {
-                      return (
+                {/* Two Column Layout */}
+                <div style={{ display: 'flex', gap: '40px', alignItems: 'flex-start' }}>
+                  {/* Left Column: Photos */}
+                  <div style={{ flex: 1, minWidth: '300px' }}>
+                    {weekEntries.filter(e => e.type === 'photo').map((entry) => (
                         <div
                           key={entry.id}
-                          className="polaroid floating"
+                          className="polaroid"
                           style={{
-                            left: customPos ? `${customPos.left}px` : `${entry.positionLeft}%`,
-                            top: customPos ? `${customPos.top}px` : `${entry.positionTop}px`,
-                            transform: `rotate(${photoRotations[i % 5]}deg)`,
-                            cursor: draggingId === entry.id ? 'grabbing' : 'grab',
+                            marginBottom: '24px',
+                            cursor: 'grab',
                           }}
-                          onMouseDown={(e) => handleMouseDown(e, entry.id)}
                           onClick={() => setSelectedEntry(selectedEntry?.id === entry.id ? null : entry)}
                         >
                           <img src={entry.image} alt="memory" />
@@ -521,20 +484,21 @@ function App() {
                             <div className="polaroid-date">{entry.date}</div>
                           </div>
                         </div>
-                      )
-                    }
-
-                    return (
+                      ))}
+                  </div>
+                  
+                  {/* Right Column: Text Entries */}
+                  <div style={{ flex: 1, minWidth: '300px' }}>
+                    {weekEntries.filter(e => e.type !== 'photo').map((entry) => (
                       <div
                         key={entry.id}
-                        className="entry-card scattered floating"
+                        className="entry-card"
                         style={{
-                          left: customPos ? `${customPos.left}px` : `${entry.positionLeft}%`,
-                          top: customPos ? `${customPos.top}px` : `${entry.positionTop}px`,
-                          transform: `rotate(${cardRotations[i % 4]}deg)`,
-                          cursor: draggingId === entry.id ? 'grabbing' : 'grab',
+                          position: 'relative',
+                          marginBottom: '24px',
+                          minHeight: 'auto',
+                          cursor: 'pointer',
                         }}
-                        onMouseDown={(e) => handleMouseDown(e, entry.id)}
                         onClick={() => setSelectedEntry(selectedEntry?.id === entry.id ? null : entry)}
                       >
                         <div 
@@ -611,6 +575,7 @@ function App() {
                       </div>
                     )
                   })}
+                  </div>
                 </div>
 
                 {/* Add Button & Camera Button - Current Week Only & Signed In */}
