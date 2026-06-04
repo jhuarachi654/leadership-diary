@@ -464,10 +464,10 @@ function App() {
                   </div>
                 )}
 
-                {/* Two Column Layout */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', width: '100%', gridAutoFlow: 'row' }}>
+                {/* Two Column Masonry Layout */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', width: '100%', gridAutoFlow: 'dense' }}>
                   {/* Left Column: Photos */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', gridColumn: '1' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                     {weekEntries.filter(e => e.type === 'photo').map((entry) => (
                         <div
                           key={entry.id}
@@ -488,7 +488,7 @@ function App() {
                   </div>
                   
                   {/* Right Column: Text Entries */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', gridColumn: '2' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                     {weekEntries.filter(e => e.type !== 'photo').map((entry) => (
                       <div
                         key={entry.id}
@@ -574,7 +574,7 @@ function App() {
                         <div className="envelope-flap"></div>
                       </div>
                     )
-                  })}
+                  )}
                   </div>
                 </div>
 
