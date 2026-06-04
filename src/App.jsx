@@ -892,23 +892,24 @@ function App() {
                   <p>{selectedEntry.caption}</p>
                 </div>
               )}
-              <button 
-                className="btn-primary"
-                onClick={() => {
-                  if (selectedEntry.image) {
-                    setEditingPhotoCaption(selectedEntry.caption || '')
-                  } else {
-                    setSelectedEntry(null)
-                    setFormData({ type: selectedEntry.entryType, title: selectedEntry.title, content: selectedEntry.content })
-                    setEditingEntry(selectedEntry)
-                    setShowNewEntry(true)
-                  }
-                }}
-                style={{ marginTop: '16px' }}
-                disabled={!isSignedIn}
-              >
-                {selectedEntry.image ? 'Edit Caption' : 'Edit Entry'}
-              </button>
+              {isSignedIn && (
+                <button 
+                  className="btn-primary"
+                  onClick={() => {
+                    if (selectedEntry.image) {
+                      setEditingPhotoCaption(selectedEntry.caption || '')
+                    } else {
+                      setSelectedEntry(null)
+                      setFormData({ type: selectedEntry.entryType, title: selectedEntry.title, content: selectedEntry.content })
+                      setEditingEntry(selectedEntry)
+                      setShowNewEntry(true)
+                    }
+                  }}
+                  style={{ marginTop: '16px' }}
+                >
+                  {selectedEntry.image ? 'Edit Caption' : 'Edit Entry'}
+                </button>
+              )}
             </div>
           </div>
         </div>
