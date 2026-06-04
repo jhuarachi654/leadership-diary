@@ -326,6 +326,57 @@ html, body {
   border-color: #64748b !important;
 }
 
+/* Dark mode modal styling */
+.app.dark .modal {
+  background: #1e293b;
+  color: #e2e8f0;
+}
+
+.app.dark .modal-header {
+  border-bottom-color: #334155;
+}
+
+.app.dark .modal-header h2 {
+  color: #e2e8f0;
+}
+
+.app.dark .modal-body {
+  color: #cbd5e1;
+}
+
+.app.dark .modal-body h3,
+.app.dark .modal-body h4 {
+  color: #e2e8f0;
+}
+
+.app.dark .modal-body p {
+  color: #cbd5e1;
+}
+
+.app.dark .detail-field h3,
+.app.dark .detail-field h4 {
+  color: #e2e8f0;
+}
+
+.app.dark .detail-field p {
+  color: #cbd5e1;
+}
+
+/* Dark mode form styling */
+.app.dark .form-group label {
+  color: #e2e8f0;
+}
+
+.app.dark .form-group input[type="text"],
+.app.dark .form-group input[type="email"],
+.app.dark .form-group input[type="password"],
+.app.dark .form-group textarea,
+.app.dark .form-group select {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-color: #475569;
+}
+
 .card-preview p {
   margin: 0;
 }
