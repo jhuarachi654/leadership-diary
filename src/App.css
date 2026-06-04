@@ -287,7 +287,6 @@ html, body {
   color: var(--text-dark);
   overflow: visible;
   text-overflow: clip;
-  padding-right: 80px;
   position: relative;
 }
 
