@@ -306,9 +306,9 @@ function App() {
   }
 
   const photoRotations = [-8, 5, 3, -5, 7]
-  const photoLefts = ['10%', '65%', '15%', '70%', '38%']
+  const photoLefts = ['8%', '12%', '5%', '15%', '10%']
   const cardRotations = [-3, 2, 1, -2]
-  const cardLefts = ['12%', '58%', '28%', '68%']
+  const cardLefts = ['58%', '62%', '55%', '68%']
 
   const currentTime_display = currentTime.toLocaleDateString('en-US', {
     weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit',
@@ -790,8 +790,8 @@ function App() {
                     padding: '12px',
                     fontSize: '13px',
                     background: 'transparent',
-                    color: '#ef4444',
-                    border: '1px solid #ef4444',
+                    color: '#14b8a6',
+                    border: '1px solid #14b8a6',
                     borderRadius: '0px',
                     cursor: 'pointer',
                     fontFamily: 'Space Grotesk, sans-serif',
