@@ -465,9 +465,9 @@ function App() {
                 )}
 
                 {/* Two Column Masonry Layout */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', width: '100%', gridAutoFlow: 'dense' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px', width: '100%', gridAutoFlow: 'dense' }}>
                   {/* Left Column: Photos */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
                     {weekEntries.filter(e => e.type === 'photo').map((entry) => (
                         <div
                           key={entry.id}
@@ -476,6 +476,8 @@ function App() {
                             marginBottom: '24px',
                             cursor: 'grab',
                           }}
+                          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                           onClick={() => setSelectedEntry(selectedEntry?.id === entry.id ? null : entry)}
                         >
                           <img src={entry.image} alt="memory" />
@@ -488,7 +490,7 @@ function App() {
                   </div>
                   
                   {/* Right Column: Text Entries */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
                     {weekEntries.filter(e => e.type !== 'photo').map((entry) => (
                       <div
                         key={entry.id}
@@ -497,8 +499,10 @@ function App() {
                           position: 'relative',
                           marginBottom: '24px',
                           minHeight: 'auto',
-                          cursor: 'pointer',
+                          cursor: 'grab',
                         }}
+                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                         onClick={() => setSelectedEntry(selectedEntry?.id === entry.id ? null : entry)}
                       >
                         <div 
