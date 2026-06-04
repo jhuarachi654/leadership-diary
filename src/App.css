@@ -341,30 +341,29 @@ html, body {
 }
 
 .app.dark .modal-body {
-  color: #cbd5e1;
+  color: #e2e8f0;
 }
 
 .app.dark .modal-body h3,
-.app.dark .modal-body h4 {
-  color: #e2e8f0;
-}
-
-.app.dark .modal-body p {
-  color: #cbd5e1;
-}
-
+.app.dark .modal-body h4,
 .app.dark .detail-field h3,
 .app.dark .detail-field h4 {
-  color: #e2e8f0;
+  color: #e2e8f0 !important;
 }
 
+.app.dark .modal-body p,
 .app.dark .detail-field p {
   color: #cbd5e1;
 }
 
-/* Dark mode form styling */
+/* Photo caption label in dark mode */
+.app.dark .detail-field h4 {
+  color: #e2e8f0 !important;
+}
+
+/* Form group labels */
 .app.dark .form-group label {
-  color: #e2e8f0;
+  color: #e2e8f0 !important;
 }
 
 .app.dark .form-group input[type="text"],
