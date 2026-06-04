@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect, useRef } from 'react'
+import { Fragment, useState, useEffect, useRef, useCallback } from 'react'
 import './App.css'
 import AssessmentPanel from './AssessmentPanel'
 
@@ -78,46 +78,76 @@ const ENTRY_TYPES = {
   thought: { label: 'Thought', color: '#ec4899' }
 }
 
-// Generate random scattered positions for entries
-const getRandomScatteredPosition = (isPhoto, existingPositions = {}) => {
-  const maxAttempts = 50
-  
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    let left, top
-    
-    if (isPhoto) {
-      // Photos on left side (3-15%)
-      left = Math.random() * 12 + 3
-      top = Math.random() * 700 + 80
-    } else {
-      // Text entries on right side (67-85%)
-      left = Math.random() * 18 + 67
-      top = Math.random() * 700 + 80
+// ─── Scatter placement ────────────────────────────────────────────────────────
+const CARD_W = 340
+const CARD_H = 230
+const PHOTO_W = 190
+const PHOTO_H = 210
+const GAP = 24        // minimum space between items
+const TOP_OFFSET = 72 // clear the week label
+
+const rectsOverlap = (ax, ay, aw, ah, bx, by, bw, bh) =>
+  ax < bx + bw + GAP &&
+  ax + aw + GAP > bx &&
+  ay < by + bh + GAP &&
+  ay + ah + GAP > by
+
+/**
+ * Find a non-overlapping pixel position.
+ * Photos: left 35% of canvas. Cards: right 65%.
+ * vw / vh are the scatter container's pixel dimensions.
+ */
+const placeItem = (isPhoto, placed, vw, vh) => {
+  const w = isPhoto ? PHOTO_W : CARD_W
+  const h = isPhoto ? PHOTO_H : CARD_H
+
+  // Zone boundaries (pixels)
+  const zoneMinX = isPhoto ? GAP : Math.round(vw * 0.35)
+  const zoneMaxX = isPhoto ? Math.round(vw * 0.38) : vw - w - GAP
+
+  const minY = TOP_OFFSET
+  const maxY = Math.max(minY, vh - h - GAP)
+
+  for (let attempt = 0; attempt < 200; attempt++) {
+    const left = zoneMinX + Math.random() * Math.max(1, zoneMaxX - zoneMinX)
+    const top  = minY    + Math.random() * Math.max(1, maxY - minY)
+
+    const cl = Math.max(GAP, Math.min(left, vw - w - GAP))
+    const ct = Math.max(minY, Math.min(top,  vh - h - GAP))
+
+    let clash = false
+    for (const r of placed) {
+      if (rectsOverlap(cl, ct, w, h, r.x, r.y, r.w, r.h)) { clash = true; break }
     }
-    
-    // Check for overlaps with existing entries
-    let hasOverlap = false
-    for (const pos of Object.values(existingPositions)) {
-      // Simple distance check (percentage-based)
-      const leftDiff = Math.abs(left - pos.left)
-      const topDiff = Math.abs(top - pos.top)
-      
-      if (leftDiff < 8 && topDiff < 200) {
-        hasOverlap = true
-        break
-      }
-    }
-    
-    if (!hasOverlap) {
-      return { left, top }
-    }
+    if (!clash) return { left: cl, top: ct }
   }
-  
-  // Fallback random position
-  return isPhoto 
-    ? { left: Math.random() * 12 + 3, top: Math.random() * 700 + 80 }
-    : { left: Math.random() * 18 + 67, top: Math.random() * 700 + 80 }
+
+  // Fallback: stack below everything already placed
+  const maxExisting = placed.reduce((m, r) => Math.max(m, r.y + r.h), minY)
+  return {
+    left: Math.max(GAP, Math.min(zoneMinX + Math.random() * 160, vw - w - GAP)),
+    top:  maxExisting + GAP,
+  }
 }
+
+/**
+ * Build pixel positions for every entry in a week.
+ * Returns { [id]: { left, top } }
+ */
+const buildWeekPositions = (weekEntries, vw, vh) => {
+  const placed = []
+  const result = {}
+  for (const entry of weekEntries) {
+    const isPhoto = entry.type === 'photo'
+    const pos = placeItem(isPhoto, placed, vw, vh)
+    const w = isPhoto ? PHOTO_W : CARD_W
+    const h = isPhoto ? PHOTO_H : CARD_H
+    placed.push({ x: pos.left, y: pos.top, w, h })
+    result[entry.id] = pos
+  }
+  return result
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 const getContentPlaceholder = (type) => {
   const placeholders = {
@@ -162,9 +192,13 @@ function App() {
   const [photoCaption, setPhotoCaption] = useState('')
   const [draggingId, setDraggingId] = useState(null)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
+  // positions stores pixel coords: { [entryId]: { left, top } }
   const [positions, setPositions] = useState({})
+  // viewport size of the scatter container (updated on mount / resize)
+  const [containerSize, setContainerSize] = useState({ vw: window.innerWidth, vh: window.innerHeight - 65 })
   const scrollContainerRef = useRef(null)
   const captionInputRef = useRef(null)
+  const scatterRef = useRef(null)
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -195,6 +229,55 @@ function App() {
     localStorage.setItem('darkMode', darkMode)
   }, [darkMode])
 
+  // Track container size for placement calculations
+  useEffect(() => {
+    const update = () => {
+      setContainerSize({ vw: window.innerWidth, vh: window.innerHeight - 65 })
+    }
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
+
+  // When entries change, seed positions for any entry that doesn't have one yet
+  useEffect(() => {
+    const { vw, vh } = containerSize
+    setPositions(prev => {
+      const next = { ...prev }
+      let changed = false
+
+      // Group entries by week so we can do per-week collision detection
+      const byWeek = {}
+      for (const e of entries) {
+        if (!byWeek[e.weekIndex]) byWeek[e.weekIndex] = []
+        byWeek[e.weekIndex].push(e)
+      }
+
+      for (const [, weekEntries] of Object.entries(byWeek)) {
+        // Build placed list from already-positioned entries in this week
+        const placed = weekEntries
+          .filter(e => next[e.id])
+          .map(e => {
+            const p = next[e.id]
+            const isPhoto = e.type === 'photo'
+            return { x: p.left, y: p.top, w: isPhoto ? PHOTO_W : CARD_W, h: isPhoto ? PHOTO_H : CARD_H }
+          })
+
+        for (const entry of weekEntries) {
+          if (next[entry.id]) continue // already placed
+          const isPhoto = entry.type === 'photo'
+          const pos = placeItem(isPhoto, placed, vw, vh)
+          const w = isPhoto ? PHOTO_W : CARD_W
+          const h = isPhoto ? PHOTO_H : CARD_H
+          placed.push({ x: pos.left, y: pos.top, w, h })
+          next[entry.id] = pos
+          changed = true
+        }
+      }
+
+      return changed ? next : prev
+    })
+  }, [entries, containerSize])
+
   // Handle sign-in
   const handleSignIn = () => {
     setSignInError('')
@@ -224,28 +307,50 @@ function App() {
   // Mouse drag handlers
   const handleMouseDown = (e, entryId) => {
     if (['BUTTON', 'INPUT', 'TEXTAREA'].includes(e.target.tagName)) return
+    e.preventDefault()
     setDraggingId(entryId)
     const rect = e.currentTarget.getBoundingClientRect()
     setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top })
   }
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (draggingId === null) return
-    const scatterContainer = document.querySelector('.week-scatter')
-    if (!scatterContainer) return
-    const containerRect = scatterContainer.getBoundingClientRect()
-    const newLeft = e.clientX - containerRect.left - dragOffset.x
-    const newTop = e.clientY - containerRect.top - dragOffset.y
+    // Find the scatter container for this entry
+    const containers = document.querySelectorAll('.week-scatter')
+    let containerRect = null
+    for (const c of containers) {
+      const r = c.getBoundingClientRect()
+      if (e.clientX >= r.left && e.clientX <= r.right &&
+          e.clientY >= r.top  && e.clientY <= r.bottom) {
+        containerRect = r
+        break
+      }
+    }
+    // Fallback to first container
+    if (!containerRect && containers[0]) containerRect = containers[0].getBoundingClientRect()
+    if (!containerRect) return
+
+    const entry = entries.find(e2 => e2.id === draggingId)
+    const isPhoto = entry?.type === 'photo'
+    const w = isPhoto ? PHOTO_W : CARD_W
+    const h = isPhoto ? PHOTO_H : CARD_H
+
+    const newLeft = Math.max(0, Math.min(
+      e.clientX - containerRect.left - dragOffset.x,
+      containerRect.width - w
+    ))
+    const newTop = Math.max(0, Math.min(
+      e.clientY - containerRect.top - dragOffset.y,
+      containerRect.height - h
+    ))
+
     setPositions(prev => ({
       ...prev,
-      [draggingId]: {
-        left: Math.max(0, Math.min(newLeft, containerRect.width - 280)),
-        top: Math.max(0, newTop),
-      },
+      [draggingId]: { left: newLeft, top: newTop },
     }))
-  }
+  }, [draggingId, dragOffset, entries])
 
-  const handleMouseUp = () => setDraggingId(null)
+  const handleMouseUp = useCallback(() => setDraggingId(null), [])
 
   useEffect(() => {
     if (draggingId !== null) {
@@ -256,7 +361,7 @@ function App() {
         document.removeEventListener('mouseup', handleMouseUp)
       }
     }
-  }, [draggingId, dragOffset])
+  }, [draggingId, handleMouseMove, handleMouseUp])
 
   // Upload photo to R2
   const handlePhotoUpload = async (file) => {
@@ -324,7 +429,7 @@ function App() {
     }
 
     if (editingEntry) {
-      setEntries(entries.map(e => e.id === editingEntry.id ? newEntry : e))
+      setEntries(entries.map(e => e.id === editingEntry.id ? { ...newEntry, id: editingEntry.id } : e))
       setEditingEntry(null)
     } else {
       setEntries([newEntry, ...entries])
@@ -347,9 +452,7 @@ function App() {
   }
 
   const photoRotations = [-8, 5, 3, -5, 7]
-  const photoLefts = ['5%', '8%', '3%', '10%', '6%']
   const cardRotations = [-3, 2, 1, -2]
-  const cardLefts = ['70%', '74%', '67%', '80%']
 
   const currentTime_display = currentTime.toLocaleDateString('en-US', {
     weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit',
@@ -447,8 +550,6 @@ function App() {
               <div 
                 key={week.index} 
                 className={`week-container week-${status}`}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
               >
                 {/* Module Label - Top Left */}
                 <div className="week-label">
@@ -465,9 +566,10 @@ function App() {
                 )}
 
                 {/* Scattered Entries Container */}
-                <div className="week-scatter">
+                <div className="week-scatter" ref={scatterRef}>
                   {weekEntries.map((entry, i) => {
-                    const customPos = positions[entry.id]
+                    const pos = positions[entry.id]
+                    if (!pos) return null // not yet placed
 
                     if (entry.type === 'photo') {
                       return (
@@ -475,15 +577,18 @@ function App() {
                           key={entry.id}
                           className="polaroid floating"
                           style={{
-                            left: customPos ? `${customPos.left}px` : photoLefts[i % 5],
-                            top: customPos ? `${customPos.top}px` : `${80 + (i % 3) * 200}px`,
-                            transform: `rotate(${photoRotations[i % 5]}deg)`,
+                            left: pos.left,
+                            top: pos.top,
+                            width: PHOTO_W,
+                            transform: `rotate(${photoRotations[i % photoRotations.length]}deg)`,
                             cursor: draggingId === entry.id ? 'grabbing' : 'grab',
+                            zIndex: draggingId === entry.id ? 50 : 1,
+                            position: 'absolute',
                           }}
                           onMouseDown={(e) => handleMouseDown(e, entry.id)}
                           onClick={() => setSelectedEntry(selectedEntry?.id === entry.id ? null : entry)}
                         >
-                          <img src={entry.image} alt="memory" />
+                          <img src={entry.image} alt="memory" style={{ width: '100%', height: 140, objectFit: 'cover' }} />
                           <div className="polaroid-content">
                             {entry.caption && <div className="polaroid-caption">{entry.caption}</div>}
                             <div className="polaroid-date">{entry.date}</div>
@@ -497,10 +602,13 @@ function App() {
                         key={entry.id}
                         className="entry-card scattered floating"
                         style={{
-                          left: customPos ? `${customPos.left}px` : cardLefts[i % 4],
-                          top: customPos ? `${customPos.top}px` : `${80 + Math.floor(i / 2) * 200}px`,
-                          transform: `rotate(${cardRotations[i % 4]}deg)`,
+                          left: pos.left,
+                          top: pos.top,
+                          width: CARD_W,
+                          transform: `rotate(${cardRotations[i % cardRotations.length]}deg)`,
                           cursor: draggingId === entry.id ? 'grabbing' : 'grab',
+                          zIndex: draggingId === entry.id ? 50 : 1,
+                          position: 'absolute',
                         }}
                         onMouseDown={(e) => handleMouseDown(e, entry.id)}
                         onClick={() => setSelectedEntry(selectedEntry?.id === entry.id ? null : entry)}
@@ -584,7 +692,7 @@ function App() {
                 {/* Add Button & Camera Button - Current Week Only & Signed In */}
                 {status === 'current' && !isLocked && isSignedIn && (
                   <>
-                    <button className="camera-button" onClick={() => document.getElementById('camera-input').click()}>
+                    <button className="camera-button" onClick={() => document.getElementById('camera-input').click()} disabled={uploadingPhoto}>
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                         <circle cx="12" cy="13" r="4"/>
@@ -753,10 +861,8 @@ function App() {
                 className="btn-primary"
                 onClick={() => {
                   if (selectedEntry.image) {
-                    // Photo entry - edit caption
                     setEditingPhotoCaption(selectedEntry.caption || '')
                   } else {
-                    // Text entry - edit content
                     setSelectedEntry(null)
                     setFormData({ type: selectedEntry.entryType, title: selectedEntry.title, content: selectedEntry.content })
                     setEditingEntry(selectedEntry)
@@ -904,7 +1010,7 @@ function App() {
         </div>
       )}
 
-      {/* Sign In Modal - Optional, can be dismissed */}
+      {/* Sign In Modal */}
       {showSignIn && (
         <div className="overlay" onClick={() => setShowSignIn(false)}>
           <div className="modal new-entry-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
