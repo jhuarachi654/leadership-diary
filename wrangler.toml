@@ -6,3 +6,8 @@ compatibility_flags = ["nodejs_compat"]
 [[r2_buckets]]
 binding = "PHOTOS"
 bucket_name = "leadership-diary-photos"
+
+[[d1_databases]]
+binding = "leadership_diary"
+database_name = "leadership-diary-db"
+database_id = "7d89173f-445e-4b93-96f7-a19b809c6f89"

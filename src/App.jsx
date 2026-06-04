@@ -181,6 +181,14 @@ const CREDENTIALS = {
   password: 'Brocky123!'
 }
 
+const AUTH_HEADER = `Basic ${btoa(`${CREDENTIALS.email}:${CREDENTIALS.password}`)}`
+
+const authFetch = (url, options = {}) =>
+  fetch(url, {
+    ...options,
+    headers: { 'Content-Type': 'application/json', 'Authorization': AUTH_HEADER, ...options.headers },
+  })
+
 function App() {
   const [entries, setEntries] = useState([])
   const [showNewEntry, setShowNewEntry] = useState(false)
@@ -214,16 +222,13 @@ function App() {
   const captionInputRef = useRef(null)
   const scatterRef = useRef(null)
 
-  // Load from localStorage on mount
+  // Load entries from D1 on mount
   useEffect(() => {
-    const saved = localStorage.getItem('leadershipDiary')
-    if (saved) setEntries(JSON.parse(saved))
+    fetch('/api/entries')
+      .then(r => r.json())
+      .then(data => setEntries(data))
+      .catch(() => {})
   }, [])
-
-  // Save to localStorage whenever entries change
-  useEffect(() => {
-    localStorage.setItem('leadershipDiary', JSON.stringify(entries))
-  }, [entries])
 
   // Update time every second
   useEffect(() => {
@@ -448,12 +453,11 @@ function App() {
   }
 
   // Save photo entry after caption
-  const savePendingPhoto = () => {
+  const savePendingPhoto = async () => {
     if (!pendingPhoto) return
-    
-    const newEntry = {
-      id: Date.now(),
-      type: 'photo',
+
+    const payload = {
+      entryType: 'photo',
       weekIndex: getWeekIndexForDate(Date.now()),
       image: pendingPhoto,
       caption: photoCaption,
@@ -462,21 +466,27 @@ function App() {
       }),
       timestamp: Date.now(),
     }
-    
-    setEntries([newEntry, ...entries])
+
+    const res = await authFetch('/api/entries', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+    if (res.ok) {
+      const created = await res.json()
+      setEntries([created, ...entries])
+    }
     setPendingPhoto(null)
     setPhotoCaption('')
   }
 
-  // Add text entry
-  const handleAddEntry = () => {
+  // Add / update text entry
+  const handleAddEntry = async () => {
     if (!formData.title.trim() || !formData.content.trim()) {
       alert('Please add a title and content')
       return
     }
 
-    const newEntry = {
-      id: Date.now(),
+    const payload = {
       entryType: formData.type,
       weekIndex: getWeekIndexForDate(Date.now()),
       title: formData.title,
@@ -488,12 +498,26 @@ function App() {
     }
 
     if (editingEntry) {
-      setEntries(entries.map(e => e.id === editingEntry.id ? { ...newEntry, id: editingEntry.id } : e))
+      const res = await authFetch(`/api/entries/${editingEntry.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      })
+      if (res.ok) {
+        const updated = await res.json()
+        setEntries(entries.map(e => e.id === editingEntry.id ? updated : e))
+      }
       setEditingEntry(null)
     } else {
-      setEntries([newEntry, ...entries])
+      const res = await authFetch('/api/entries', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      })
+      if (res.ok) {
+        const created = await res.json()
+        setEntries([created, ...entries])
+      }
     }
-    
+
     setFormData({ type: 'insight', title: '', content: '' })
     setShowNewEntry(false)
   }
@@ -982,8 +1006,15 @@ function App() {
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button 
                   className="btn-primary"
-                  onClick={() => {
-                    setEntries(entries.map(e => e.id === selectedEntry.id ? { ...e, caption: editingPhotoCaption } : e))
+                  onClick={async () => {
+                    const res = await authFetch(`/api/entries/${selectedEntry.id}`, {
+                      method: 'PUT',
+                      body: JSON.stringify({ caption: editingPhotoCaption }),
+                    })
+                    if (res.ok) {
+                      const updated = await res.json()
+                      setEntries(entries.map(e => e.id === selectedEntry.id ? updated : e))
+                    }
                     setSelectedEntry(null)
                     setEditingPhotoCaption(false)
                   }}
@@ -1028,7 +1059,8 @@ function App() {
               </p>
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button 
-                  onClick={() => {
+                  onClick={async () => {
+                    await authFetch(`/api/entries/${deleteConfirmId}`, { method: 'DELETE' })
                     setEntries(entries.filter(e => e.id !== deleteConfirmId))
                     setSelectedEntry(null)
                     setDeleteConfirmId(null)
@@ -1086,7 +1118,7 @@ function App() {
                   type="email"
                   value={signInEmail}
                   onChange={(e) => setSignInEmail(e.target.value)}
-                  placeholder="jhuarachi654@gmail.com"
+                  placeholder="Enter your email"
                   onKeyPress={(e) => e.key === 'Enter' && handleSignIn()}
                   style={{
                     padding: '12px',
